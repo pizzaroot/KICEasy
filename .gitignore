@@ -7,3 +7,6 @@
 # Build results
 x86/
 x64/
+
+# Visual C++ cache files
+*.aps

@@ -25,6 +25,8 @@ CChildView::~CChildView()
 
 BEGIN_MESSAGE_MAP(CChildView, CWnd)
 	ON_WM_PAINT()
+	ON_WM_ERASEBKGND()
+	ON_COMMAND(ID_INSERT_FUNCTION, &CChildView::OnInsertFunction)
 END_MESSAGE_MAP()
 
 
@@ -46,10 +48,44 @@ BOOL CChildView::PreCreateWindow(CREATESTRUCT& cs)
 
 void CChildView::OnPaint() 
 {
-	CPaintDC dc(this); // 그리기를 위한 디바이스 컨텍스트입니다.
-	
-	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
+	CPaintDC dc(this);
 
-	// 그리기 메시지에 대해서는 CWnd::OnPaint()를 호출하지 마십시오.
+	CRect rect;
+	GetClientRect(&rect);
+	CDC memDC;
+	memDC.CreateCompatibleDC(&dc);
+	CBitmap bitmap;
+	bitmap.CreateCompatibleBitmap(&dc, rect.Width(), rect.Height());
+	memDC.SelectObject(&bitmap);
+	
+	memDC.SelectStockObject(WHITE_PEN);
+	memDC.Rectangle(0, 0, rect.Width(), rect.Height());
+
+	CPen graphPen(PS_SOLID, 2, RGB(0, 0, 0));
+
+	memDC.SelectObject(&graphPen);
+	
+	for (auto &curve : curves) {
+		bool skip = true;
+		for (auto &point : curve) {
+			if (!skip) memDC.LineTo(point.x + rect.Width() / 2, rect.Height() / 2);
+			else skip = false;
+			memDC.MoveTo(point.x + rect.Width() / 2, rect.Height() / 2 - point.y);
+		}
+	}
+
+	dc.BitBlt(0, 0, rect.Width(), rect.Height(), &memDC, 0, 0, SRCCOPY);
 }
 
+
+
+BOOL CChildView::OnEraseBkgnd(CDC* pDC)
+{
+	return CWnd::OnEraseBkgnd(pDC);
+}
+
+
+void CChildView::OnInsertFunction()
+{
+
+}

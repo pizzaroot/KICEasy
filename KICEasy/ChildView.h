@@ -4,7 +4,8 @@
 
 
 #pragma once
-
+#include <algorithm>
+#include <list>
 
 // CChildView 창
 
@@ -15,7 +16,8 @@ public:
 	CChildView();
 
 // 특성입니다.
-public:
+private:
+	std::list<std::list<POINT>> curves;
 
 // 작업입니다.
 public:
@@ -32,5 +34,8 @@ public:
 protected:
 	afx_msg void OnPaint();
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	afx_msg void OnInsertFunction();
 };
 

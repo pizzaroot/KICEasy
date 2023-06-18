@@ -61,14 +61,20 @@ void CChildView::OnPaint()
 	memDC.SelectStockObject(WHITE_PEN);
 	memDC.Rectangle(0, 0, rect.Width(), rect.Height());
 
-	CPen graphPen(PS_SOLID, 2, RGB(0, 0, 0));
-
-	memDC.SelectObject(&graphPen);
+	memDC.SelectStockObject(BLACK_PEN);
 	
+	memDC.MoveTo(0, rect.Height() / 2);
+	memDC.LineTo(rect.Width(), rect.Height() / 2);
+	memDC.MoveTo(rect.Width() / 2, 0);
+	memDC.LineTo(rect.Width() / 2, rect.Height());
+
+	CPen graphPen(PS_SOLID, 2, RGB(0, 0, 0));
+	memDC.SelectObject(&graphPen);
+
 	for (auto &curve : curves) {
 		bool skip = true;
 		for (auto &point : curve) {
-			if (!skip) memDC.LineTo(point.x + rect.Width() / 2, rect.Height() / 2);
+			if (!skip) memDC.LineTo(point.x + rect.Width() / 2, rect.Height() / 2 - point.y);
 			else skip = false;
 			memDC.MoveTo(point.x + rect.Width() / 2, rect.Height() / 2 - point.y);
 		}
@@ -87,5 +93,10 @@ BOOL CChildView::OnEraseBkgnd(CDC* pDC)
 
 void CChildView::OnInsertFunction()
 {
-
+	std::list<POINT> curve;
+	for (int i = 0; i < 1000; i++) {
+		POINT p; p.x = i, p.y = sqrt((float)i / 100) * 100;
+		curve.push_back(p);
+	}
+	curves.push_back(curve);
 }

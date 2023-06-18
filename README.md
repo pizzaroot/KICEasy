@@ -13,8 +13,7 @@ y=x^2-3x+1
 ```
 
 ## Build requirements
-- Visual Studio 2022 or higher
-- MFC v143 or higher
+- Visual Studio 2022 or higher with MFC installed
 
 ## License
 KICEasy is licensed under the MIT

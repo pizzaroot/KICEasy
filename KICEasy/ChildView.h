@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <list>
 #include <string>
+#include <cmath>
 
 // CChildView 창
 

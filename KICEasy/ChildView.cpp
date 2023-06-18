@@ -137,6 +137,21 @@ double CChildView::CalculateExpression(std::string expr) {
 			}
 		}
 	}
+	for (int i = (int)expr.size() - 1; i >= 0; i--) {
+		if (expr[i] == ')') cnt++;
+		else if (expr[i] == '(') cnt--;
+		else if (cnt == 0 && expr[i] == '^') {
+			std::string left = expr.substr(0, i), right = expr.substr(i + 1);
+			double lval = CalculateExpression(left);
+			double rval = CalculateExpression(right);
+			if (lval < 0 && abs((int)rval - rval) > 0.00001) {
+				invalid = true;
+				return 1;
+			}
+			if (lval < 0) return std::pow(lval, (int)rval);
+			else return std::pow(lval, rval);
+		}
+	}
 	return CalculateExpression(expr.substr(1, (int)expr.size() - 2));
 }
 
@@ -155,7 +170,7 @@ double CChildView::CalculateFunction(double i) {
 	prev = ' ';
 	for (auto& x : expr2) {
 		if (prev == ')' && x == '(') expr += '*';
-		else expr += x;
+		expr += x;
 		prev = x;
 	}
 	return CalculateExpression(expr);

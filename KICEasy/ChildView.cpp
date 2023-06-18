@@ -155,7 +155,7 @@ double CChildView::CalculateFunction(double i) {
 	prev = ' ';
 	for (auto& x : expr2) {
 		if (prev == ')' && x == '(') expr += '*';
-		else expr += x;
+		expr += x;
 		prev = x;
 	}
 	return CalculateExpression(expr);
@@ -163,6 +163,7 @@ double CChildView::CalculateFunction(double i) {
 
 void CChildView::OnInsertFunction()
 {
+	if (curFunc.empty()) return;
 	std::list<POINT> curve;
 	for (int i = -1000; i < 1000; i++) {
 		invalid = false;

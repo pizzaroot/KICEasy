@@ -18,6 +18,7 @@ CChildView::CChildView()
 {
 	funcCursor = 0;
 	invalid = false;
+	eraseMode = false;
 }
 
 CChildView::~CChildView()
@@ -30,6 +31,9 @@ BEGIN_MESSAGE_MAP(CChildView, CWnd)
 	ON_WM_ERASEBKGND()
 	ON_COMMAND(ID_INSERT_FUNCTION, &CChildView::OnInsertFunction)
 	ON_WM_KEYDOWN()
+	ON_COMMAND(ID_DELETE_FUNCTION, &CChildView::OnDeleteFunction)
+	ON_UPDATE_COMMAND_UI(ID_DELETE_FUNCTION, &CChildView::OnUpdateDeleteFunction)
+	ON_WM_MOUSEMOVE()
 END_MESSAGE_MAP()
 
 
@@ -58,18 +62,19 @@ void CChildView::OnPaint()
 	CDC memDC;
 	memDC.CreateCompatibleDC(&dc);
 	CBitmap bitmap;
-	bitmap.CreateCompatibleBitmap(&dc, rect.Width(), rect.Height());
+	width = rect.Width(), height = rect.Height();
+	bitmap.CreateCompatibleBitmap(&dc, width, height);
 	memDC.SelectObject(&bitmap);
 	
 	memDC.SelectStockObject(WHITE_PEN);
-	memDC.Rectangle(0, 0, rect.Width(), rect.Height());
+	memDC.Rectangle(0, 0, width, height);
 
 	memDC.SelectStockObject(BLACK_PEN);
 	
-	memDC.MoveTo(0, rect.Height() / 2);
-	memDC.LineTo(rect.Width(), rect.Height() / 2);
-	memDC.MoveTo(rect.Width() / 2, 0);
-	memDC.LineTo(rect.Width() / 2, rect.Height());
+	memDC.MoveTo(0, height / 2);
+	memDC.LineTo(width, height / 2);
+	memDC.MoveTo(width / 2, 0);
+	memDC.LineTo(width / 2, height);
 
 	CPen graphPen(PS_SOLID, 2, RGB(0, 0, 0));
 	memDC.SelectObject(&graphPen);
@@ -77,9 +82,9 @@ void CChildView::OnPaint()
 	for (auto &curve : curves) {
 		bool skip = true;
 		for (auto &point : curve) {
-			if (!skip) memDC.LineTo(point.x + rect.Width() / 2, rect.Height() / 2 - point.y);
+			if (!skip) memDC.LineTo(point.x + width / 2, height / 2 - point.y);
 			else skip = false;
-			memDC.MoveTo(point.x + rect.Width() / 2, rect.Height() / 2 - point.y);
+			memDC.MoveTo(point.x + width / 2, height / 2 - point.y);
 		}
 	}
 
@@ -89,7 +94,7 @@ void CChildView::OnPaint()
 	CString funcStr(("y = " + curFunc).c_str());
 	memDC.TextOut(10, 10, funcStr);
 
-	dc.BitBlt(0, 0, rect.Width(), rect.Height(), &memDC, 0, 0, SRCCOPY);
+	dc.BitBlt(0, 0, width, height, &memDC, 0, 0, SRCCOPY);
 }
 
 
@@ -180,6 +185,7 @@ void CChildView::OnInsertFunction()
 {
 	if (curFunc.empty()) return;
 	std::list<POINT> curve;
+	bool valid = false;
 	for (int i = -1000; i < 1000; i++) {
 		invalid = false;
 		double tmpy = CalculateFunction((double)i / 100) * 100;
@@ -187,18 +193,21 @@ void CChildView::OnInsertFunction()
 		if (tmpy < -20000) tmpy = -20000;
 		POINT p; p.x = i, p.y = tmpy;
 		if (invalid) {
-			curves.push_back(curve);
+			if (curve.size() >= 2) curves.push_back(curve);
 			curve.clear();
 		}
 		else {
 			curve.push_back(p);
 		}
+		if (!invalid) valid = true;
 	}
-	curves.push_back(curve);
-	curve.clear();
+	if (valid) {
+		if (curve.size() >= 2) curves.push_back(curve);
+		curve.clear();
+		curFunc = "";
+		funcCursor = 0;
+	}
 	Invalidate();
-	curFunc = "";
-	funcCursor = 0;
 }
 
 
@@ -232,4 +241,56 @@ void CChildView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 	}
 	Invalidate();
 	CWnd::OnKeyDown(nChar, nRepCnt, nFlags);
+}
+
+
+void CChildView::OnDeleteFunction()
+{
+	eraseMode = !eraseMode;
+}
+
+
+void CChildView::OnUpdateDeleteFunction(CCmdUI* pCmdUI)
+{
+	pCmdUI->SetCheck(eraseMode);
+}
+
+int ccw(POINT &p1, POINT &p2, POINT &p3) {
+	long long tmp = p1.x * p2.y + p2.x * p3.y + p3.x * p1.y;
+	tmp -= p1.y * p2.x + p2.y * p3.x + p3.y * p1.x;
+	return (0 < tmp) - (tmp < 0);
+}
+
+bool intersect(POINT &l1s, POINT &l1e, POINT &l2s, POINT &l2e) {
+	int ccw1 = ccw(l1s, l1e, l2s) * ccw(l1s, l1e, l2e);
+	int ccw2 = ccw(l2s, l2e, l1s) * ccw(l2s, l2e, l1e);
+	return (ccw1 < 0) && (ccw2 < 0);
+}
+
+void CChildView::OnMouseMove(UINT nFlags, CPoint point)
+{
+	int cx = point.x - width / 2, cy = height / 2 - point.y;
+	POINT clkPos; clkPos.x = cx, clkPos.y = cy;
+	if (eraseMode && (nFlags & MK_LBUTTON)) {
+		for (std::list<std::list<POINT>>::iterator iter = curves.begin(); iter != curves.end();) {
+			bool skip = true;
+			bool del = false;
+			int cnt = 0;
+			POINT prev, prev2; prev.x = -10000, prev.y = 0, prev2.x = -10001, prev2.y = 0;
+			for (auto& p : *iter) {
+				if (cnt >= 2) {
+					if (intersect(prev2, p, prevMouse, clkPos)) { del = true; break; }
+				}
+				prev2 = prev;
+				prev = p;
+				cnt++;
+			}
+
+			if (del) curves.erase(iter++);
+			else iter++;
+		}
+		Invalidate();
+	}
+	prevMouse = clkPos;
+	CWnd::OnMouseMove(nFlags, point);
 }

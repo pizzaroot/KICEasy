@@ -203,10 +203,14 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="KICEasy.rc" />
+    <ResourceCompile Include="KICEasy.rc">
+      <DeploymentContent>true</DeploymentContent>
+    </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\KICEasy.rc2" />
+    <None Include="res\KICEasy.rc2">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\KICEasy.ico" />

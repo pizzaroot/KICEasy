@@ -23,6 +23,9 @@ private:
 	std::string curFunc;
 	int funcCursor;
 	bool invalid;
+	bool eraseMode;
+	int width, height;
+	POINT prevMouse;
 
 // 작업입니다.
 public:
@@ -45,5 +48,8 @@ public:
 	afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
 	double CalculateExpression(std::string);
 	double CalculateFunction(double);
+	afx_msg void OnDeleteFunction();
+	afx_msg void OnUpdateDeleteFunction(CCmdUI* pCmdUI);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 };
 

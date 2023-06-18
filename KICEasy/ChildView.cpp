@@ -16,6 +16,8 @@
 
 CChildView::CChildView()
 {
+	funcCursor = 0;
+	invalid = false;
 }
 
 CChildView::~CChildView()
@@ -27,6 +29,7 @@ BEGIN_MESSAGE_MAP(CChildView, CWnd)
 	ON_WM_PAINT()
 	ON_WM_ERASEBKGND()
 	ON_COMMAND(ID_INSERT_FUNCTION, &CChildView::OnInsertFunction)
+	ON_WM_KEYDOWN()
 END_MESSAGE_MAP()
 
 
@@ -80,6 +83,12 @@ void CChildView::OnPaint()
 		}
 	}
 
+	CFont expFont;
+	expFont.CreatePointFont(200, L"Arial");
+	memDC.SelectObject(&expFont);
+	CString funcStr(("y = " + curFunc).c_str());
+	memDC.TextOut(10, 10, funcStr);
+
 	dc.BitBlt(0, 0, rect.Width(), rect.Height(), &memDC, 0, 0, SRCCOPY);
 }
 
@@ -87,17 +96,121 @@ void CChildView::OnPaint()
 
 BOOL CChildView::OnEraseBkgnd(CDC* pDC)
 {
-	return CWnd::OnEraseBkgnd(pDC);
+	return TRUE;
 }
 
+double CChildView::CalculateExpression(std::string expr) {
+	bool good = true;
+	int pcnt = 0;
+	for (auto& x : expr) {
+		if (!('0' <= x && x <= '9' || x == '.')) good = false;
+		if (x == '.') pcnt++;
+	}
+	if (good && pcnt <= 1) return std::stod('0' + expr);
+	int cnt = 0;
+	for (int i = (int)expr.size() - 1; i >= 0; i--) {
+		if (expr[i] == ')') cnt++;
+		else if (expr[i] == '(') cnt--;
+		else if (cnt == 0 && (expr[i] == '+' || expr[i] == '-')) {
+			std::string left = expr.substr(0, i), right = expr.substr(i + 1);
+			if (expr[i] == '+') return CalculateExpression(left) + CalculateExpression(right);
+			else return CalculateExpression(left) - CalculateExpression(right);
+		}
+	}
+	if (cnt != 0) {
+		invalid = true;
+		return 1;
+	}
+	for (int i = (int)expr.size() - 1; i >= 0; i--) {
+		if (expr[i] == ')') cnt++;
+		else if (expr[i] == '(') cnt--;
+		else if (cnt == 0 && (expr[i] == '*' || expr[i] == '/')) {
+			std::string left = expr.substr(0, i), right = expr.substr(i + 1);
+			if (expr[i] == '*') return CalculateExpression(left) * CalculateExpression(right);
+			else {
+				double denom = CalculateExpression(right);
+				if (abs(denom) > 0.00001) return CalculateExpression(left) / denom;
+				else {
+					invalid = true;
+					return 1;
+				}
+			}
+		}
+	}
+	return CalculateExpression(expr.substr(1, (int)expr.size() - 2));
+}
+
+double CChildView::CalculateFunction(double i) {
+	std::string expr1, expr2, expr;
+	char prev = ' ';
+	for (auto &x: curFunc) {
+		if (prev >= '0' && prev <= '9' && x == 'x') expr1 += '*';
+		expr1 += x;
+		prev = x;
+	}
+	for (auto& x : expr1) {
+		if (x == 'x') expr2 += '(' + std::to_string(i) + ')';
+		else expr2 += x;
+	}
+	prev = ' ';
+	for (auto& x : expr2) {
+		if (prev == ')' && x == '(') expr += '*';
+		else expr += x;
+		prev = x;
+	}
+	return CalculateExpression(expr);
+}
 
 void CChildView::OnInsertFunction()
 {
 	std::list<POINT> curve;
-	for (int i = 0; i < 10000; i++) {
-		POINT p; p.x = i, p.y = sqrt((float)i / 100) * 100;
-		curve.push_back(p);
+	for (int i = -1000; i < 1000; i++) {
+		invalid = false;
+		POINT p; p.x = i, p.y = CalculateFunction((double)i / 100) * 100;
+		if (invalid) {
+			curves.push_back(curve);
+			curve.clear();
+		}
+		else {
+			curve.push_back(p);
+		}
 	}
 	curves.push_back(curve);
-	Invalidate(0);
+	curve.clear();
+	Invalidate();
+	curFunc = "";
+	funcCursor = 0;
+}
+
+
+void CChildView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
+{
+	switch (nChar) {
+	case VK_LEFT:
+		funcCursor = max(0, funcCursor - 1);
+		break;
+	case VK_RIGHT:
+		funcCursor = min(curFunc.size(), funcCursor + 1);
+		break;
+	case VK_BACK:
+		if (funcCursor > 0) {
+			curFunc.erase(curFunc.begin() + (--funcCursor));
+		}
+		break;
+	case 'X':
+		curFunc.insert(curFunc.begin() + (funcCursor++), 'x');
+		break;
+	default:
+		if ('0' <= nChar && nChar <= '9' && (~GetKeyState(VK_SHIFT) & 0x8000)) curFunc.insert(curFunc.begin() + (funcCursor++), nChar);
+		else if (nChar == '6') curFunc.insert(curFunc.begin() + (funcCursor++), '^');
+		else if (nChar == '8') curFunc.insert(curFunc.begin() + (funcCursor++), '*');
+		else if (nChar == '9') curFunc.insert(curFunc.begin() + (funcCursor++), '(');
+		else if (nChar == '0') curFunc.insert(curFunc.begin() + (funcCursor++), ')');
+		if (nChar == 187 && (GetKeyState(VK_SHIFT) & 0x8000)) curFunc.insert(curFunc.begin() + (funcCursor++), '+');
+		if (nChar == 189 && (~GetKeyState(VK_SHIFT) & 0x8000)) curFunc.insert(curFunc.begin() + (funcCursor++), '-');
+		if (nChar == 191 && (~GetKeyState(VK_SHIFT) & 0x8000)) curFunc.insert(curFunc.begin() + (funcCursor++), '/');
+		break;
+	}
+	Invalidate();
+	CWnd::OnKeyDown(nChar, nRepCnt, nFlags);
 }

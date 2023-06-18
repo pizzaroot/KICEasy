@@ -178,6 +178,7 @@ double CChildView::CalculateFunction(double i) {
 
 void CChildView::OnInsertFunction()
 {
+	if (curFunc.empty()) return;
 	std::list<POINT> curve;
 	for (int i = -1000; i < 1000; i++) {
 		invalid = false;

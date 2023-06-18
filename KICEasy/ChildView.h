@@ -6,6 +6,7 @@
 #pragma once
 #include <algorithm>
 #include <list>
+#include <string>
 
 // CChildView 창
 
@@ -18,6 +19,9 @@ public:
 // 특성입니다.
 private:
 	std::list<std::list<POINT>> curves;
+	std::string curFunc;
+	int funcCursor;
+	bool invalid;
 
 // 작업입니다.
 public:
@@ -37,5 +41,8 @@ protected:
 public:
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnInsertFunction();
+	afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
+	double CalculateExpression(std::string);
+	double CalculateFunction(double);
 };
 

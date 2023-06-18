@@ -182,7 +182,10 @@ void CChildView::OnInsertFunction()
 	std::list<POINT> curve;
 	for (int i = -1000; i < 1000; i++) {
 		invalid = false;
-		POINT p; p.x = i, p.y = CalculateFunction((double)i / 100) * 100;
+		double tmpy = CalculateFunction((double)i / 100) * 100;
+		if (tmpy > 20000) tmpy = 20000;
+		if (tmpy < -20000) tmpy = -20000;
+		POINT p; p.x = i, p.y = tmpy;
 		if (invalid) {
 			curves.push_back(curve);
 			curve.clear();

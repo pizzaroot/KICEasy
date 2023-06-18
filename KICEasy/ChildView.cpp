@@ -94,9 +94,10 @@ BOOL CChildView::OnEraseBkgnd(CDC* pDC)
 void CChildView::OnInsertFunction()
 {
 	std::list<POINT> curve;
-	for (int i = 0; i < 1000; i++) {
+	for (int i = 0; i < 10000; i++) {
 		POINT p; p.x = i, p.y = sqrt((float)i / 100) * 100;
 		curve.push_back(p);
 	}
 	curves.push_back(curve);
+	Invalidate(0);
 }
